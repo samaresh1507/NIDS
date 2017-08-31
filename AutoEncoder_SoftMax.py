@@ -23,7 +23,7 @@ gt0 = time()
 
 train20_nsl_kdd_dataset_path = "C:/Users/user/MSDS/Capstone/NSL_KDD-master/NSL_KDD-master/KDDTrain+_20Percent.txt"
 train_nsl_kdd_dataset_path = "C:/Users/user/MSDS/Capstone/NSL_KDD-master/NSL_KDD-master/KDDTrain+.txt"
-test_nsl_kdd_dataset_path = "C:/Users/user/MSDS/Capstone/NSL_KDD-master/NSL_KDD-master/KDDTest+.txt"
+test_nsl_kdd_dataset_path = "C:/Users/user/MSDS/Capstone/NSL_KDD-master/NSL_KDD-master/KDDTest-21.txt"
 
 col_names = np.array(["duration","protocol_type","service","flag","src_bytes",
     "dst_bytes","land","wrong_fragment","urgent","hot","num_failed_logins",
@@ -118,6 +118,21 @@ df_kdd_dataset_train['label3'] = df_kdd_dataset_train.apply(returnvalue,axis=1)
 # In[5]:
 
 
+df_kdd_dataset_test = pd.read_csv(test_nsl_kdd_dataset_path, index_col=None, header=0, names=col_names)
+df_kdd_dataset_test['label2'] = df_kdd_dataset_test.apply(_label2,axis=1)
+df_kdd_dataset_test['label3'] = df_kdd_dataset_test.apply(returnvalue,axis=1)
+
+
+# In[6]:
+
+
+print(df_kdd_dataset_train.shape)
+print(df_kdd_dataset_test.shape)
+
+
+# In[7]:
+
+
 from sklearn import preprocessing
 le = preprocessing.LabelEncoder()
 
@@ -128,7 +143,27 @@ df_kdd_dataset_train_tranformed.head()
 df_kdd_dataset_train_saved = df_kdd_dataset_train_tranformed
 
 
-# In[59]:
+# In[8]:
+
+
+from sklearn import preprocessing
+le = preprocessing.LabelEncoder()
+
+# 2/3. FIT AND TRANSFORM
+# use df.apply() to apply le.fit_transform to all columns
+df_kdd_dataset_test_tranformed = df_kdd_dataset_test.apply(le.fit_transform)
+df_kdd_dataset_test_tranformed.head()
+df_kdd_dataset_test_saved = df_kdd_dataset_test_tranformed
+
+
+# In[9]:
+
+
+print(df_kdd_dataset_train_tranformed.shape)
+print(df_kdd_dataset_test_tranformed.shape)
+
+
+# In[10]:
 
 
 def one_hot_encode(x, n_classes):
@@ -140,7 +175,18 @@ def one_hot_encode(x, n_classes):
     return np.eye(n_classes)[x]
 
 
-# In[60]:
+# In[11]:
+
+
+y_test = df_kdd_dataset_test['label2']
+le.fit(y_test)
+y_test = le.transform(y_test)
+print(y_test)
+y_test = one_hot_encode(y_test,2)
+print(y_test)
+
+
+# In[12]:
 
 
 y = df_kdd_dataset_train['label2']
@@ -152,7 +198,7 @@ y = one_hot_encode(y,2)
 print(y)
 
 
-# In[6]:
+# In[13]:
 
 
 df_kdd_dataset_train_tranformed.drop('labels', axis=1, inplace=True)
@@ -163,14 +209,39 @@ df_kdd_dataset_train_tranformed.drop('label3',axis=1,inplace=True)
 enc = preprocessing.OneHotEncoder(categorical_features=[1, 2, 3])
 
 # 2. FIT
-enc.fit(df_kdd_dataset_train_tranformed)
+#enc.fit(df_kdd_dataset_train_tranformed)
 
 # 3. Transform
-onehotlabels = enc.transform(df_kdd_dataset_train_tranformed).toarray()
-onehotlabels.shape
+#onehotlabels = enc.transform(df_kdd_dataset_train_tranformed).toarray()
+#print(onehotlabels.shape)
+
+df_kdd_dataset_test_tranformed.drop('labels', axis=1, inplace=True)
+df_kdd_dataset_test_tranformed.drop('attrib43',axis=1,inplace=True)
+df_kdd_dataset_test_tranformed.drop('label2',axis=1,inplace=True)
+df_kdd_dataset_test_tranformed.drop('label3',axis=1,inplace=True)
+
+#enc = preprocessing.OneHotEncoder(categorical_features=[1, 2, 3])
+# 2. FIT
+print(df_kdd_dataset_train_tranformed.shape)
+print(df_kdd_dataset_test_tranformed.shape)
+df_kdd_entire_set = np.vstack((df_kdd_dataset_train_tranformed, df_kdd_dataset_test_tranformed))
+enc.fit(df_kdd_entire_set)
+
+# 3. Transform
+onehotlabels_train_test = enc.transform(df_kdd_entire_set).toarray()
+print(onehotlabels_train_test.shape)
 
 
-# In[7]:
+# In[14]:
+
+
+onehotlabels_train = onehotlabels_train_test[0:25191]
+onehotlabels_test = onehotlabels_train_test[25191:37040]
+print(onehotlabels_train.shape)
+print(onehotlabels_test.shape)
+
+
+# In[16]:
 
 
 import csv
@@ -179,69 +250,51 @@ csvfile = "C:/Users/user/MSDS/Capstone/NSL_KDD-master/NSL_KDD-master/output.txt"
 #Assuming res is a flat list
 with open(csvfile, "w") as output:
     writer = csv.writer(output, lineterminator='\n')
-    for val in onehotlabels:
+    for val in onehotlabels_train:
         writer.writerow([val])   
 
 
-# In[8]:
+# In[17]:
 
 
 from sklearn.preprocessing import MinMaxScaler
 scaler = MinMaxScaler()
-df_train_transform = scaler.fit_transform(onehotlabels)
+df_train_transform = scaler.fit_transform(onehotlabels_train)
+df_test_transform = scaler.fit_transform(onehotlabels_test)
 
 
-# In[9]:
+# In[18]:
 
 
 print(df_train_transform.shape[0])
 
 
-# In[31]:
-
-
-# create the training set with labels
-df_train_transform_with_label = np.hstack((df_train_transform,y.T))
-
-
-# In[62]:
-
-
-y = np.array(y)
-
-
-# In[63]:
-
-
-print(y.shape)
-
-
-# In[66]:
+# In[19]:
 
 
 print(y.shape)
 df_train_transform_with_label=np.c_[df_train_transform,y]
+df_test_transform_with_label=np.c_[df_test_transform,y_test]
 print(df_train_transform_with_label.shape)
+print(df_test_transform_with_label.shape)
 
 
-# In[10]:
+# In[20]:
 
 
-def get_next_batch(i,batch_size):
+def get_next_batch(i,batch_size,dataset):
     start = i*batch_size
     end = (i+1)*batch_size
-    return df_train_transform[start:end]
+    return dataset[start:end]
 
 
-# In[38]:
+# In[21]:
 
 
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Import MNIST data
-nisd_data_set = df_train_transform
 
 # Parameters
 learning_rate = 0.01
@@ -321,7 +374,7 @@ with tf.Session() as sess:
     for epoch in range(training_epochs):
         # Loop over all batches
         for i in range(total_batch):
-            batch_xs = get_next_batch(i,batch_size)
+            batch_xs = get_next_batch(i,batch_size,df_train_transform)
             # Run optimization op (backprop) and cost op (to get loss value)
             _, c = sess.run([optimizer, cost], feed_dict={X: batch_xs}) 
         # Display logs per epoch step
@@ -332,19 +385,20 @@ with tf.Session() as sess:
     c2,dec_op2 = sess.run([cost,decoder_op], feed_dict={X: df_train_transform}) 
     save_path = saver.save(sess,model_path)
     # model has been trained pass the training data with labels
-    cost_train,dec_op_train_label = sess.run([cost,decoder_op], feed_dict={X: df_train_transform_with_label}) 
+    cost_train,dec_op_train_label = sess.run([cost,decoder_op], feed_dict={X: df_train_transform}) 
+    cost_test,dec_op_test_label = sess.run([cost,decoder_op], feed_dict={X: df_test_transform}) 
 
 
-# In[39]:
+# In[22]:
 
 
-def get_next_batch_label(i,batch_size):
+def get_next_batch_label(i,batch_size,dataset):
     start = i*batch_size
     end = (i+1)*batch_size
-    return df_train_transform_with_label[start:end]
+    return dataset[start:end]
 
 
-# In[41]:
+# In[23]:
 
 
 # Parameters
@@ -357,7 +411,7 @@ examples_to_show = 10
 # Network Parameters
 n_hidden_1 = 55 # 1st layer num features
 n_hidden_2 = 25 # 2nd layer num features
-n_input = 119 # Number of features
+n_input = 120 # Number of features
 
 # tf Graph input (only pictures)
 X = tf.placeholder("float", [None, n_input])
@@ -425,7 +479,7 @@ with tf.Session() as sess:
     for epoch in range(training_epochs):
         # Loop over all batches
         for i in range(total_batch):
-            batch_xs = get_next_batch_label(i,batch_size)
+            batch_xs = get_next_batch_label(i,batch_size,df_train_transform_with_label)
             # Run optimization op (backprop) and cost op (to get loss value)
             _, c = sess.run([optimizer, cost], feed_dict={X: batch_xs}) 
         # Display logs per epoch step
@@ -436,10 +490,10 @@ with tf.Session() as sess:
     cost_train,dec_op_train_label = sess.run([cost,decoder_op], feed_dict={X: df_train_transform_with_label}) 
     save_path = saver.save(sess,model_path)
     # model has been trained pass the training data with labels
-    
+    cost_test,dec_op_test_label = sess.run([cost,decoder_op], feed_dict={X: df_test_transform_with_label}) 
 
 
-# In[42]:
+# In[ ]:
 
 
 print(dec_op_train_label.shape)
@@ -451,7 +505,7 @@ print(dec_op_train_label.shape)
 
 
 
-# In[70]:
+# In[24]:
 
 
 def get_next_batch_sftmax(i,batch_size):
@@ -460,7 +514,7 @@ def get_next_batch_sftmax(i,batch_size):
     return df_train_transform_with_label[start:end,0:118],df_train_transform_with_label[start:end,118:120]
 
 
-# In[71]:
+# In[25]:
 
 
 ## Now we build the softmax regressor
@@ -490,6 +544,9 @@ optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost)
 # Initializing the variables
 init = tf.global_variables_initializer()
 
+correct_prediction = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
 # Launch the graph
 with tf.Session() as sess:
     sess.run(init)
@@ -512,6 +569,11 @@ with tf.Session() as sess:
 
     print("Optimization Finished!")
 
+    print("accuracy", sess.run(accuracy, feed_dict={x: df_train_transform_with_label[:,0:118], y: df_train_transform_with_label[:,118:120]}))
+    #prediction=tf.argmax(y,1)
+    #print ("predictions", prediction.eval(feed_dict={x: df_train_transform_with_label[0:118]}, session=sess))
+    print("accuracy", sess.run(accuracy, feed_dict={x: df_test_transform_with_label[:,0:118], y: df_test_transform_with_label[:,118:120]}))
+    #print("accuracy", sess.run(accuracy, feed_dict={x: df_train_transform_with_label[:,0:118], y: df_train_transform_with_label[:,118:120]}))
     
 
 
