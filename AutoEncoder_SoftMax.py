@@ -1,4 +1,5 @@
 
+
 # coding: utf-8
 
 # In[1]:
@@ -241,7 +242,7 @@ print(onehotlabels_train.shape)
 print(onehotlabels_test.shape)
 
 
-# In[16]:
+# In[15]:
 
 
 import csv
@@ -254,7 +255,7 @@ with open(csvfile, "w") as output:
         writer.writerow([val])   
 
 
-# In[17]:
+# In[16]:
 
 
 from sklearn.preprocessing import MinMaxScaler
@@ -263,13 +264,13 @@ df_train_transform = scaler.fit_transform(onehotlabels_train)
 df_test_transform = scaler.fit_transform(onehotlabels_test)
 
 
-# In[18]:
+# In[17]:
 
 
 print(df_train_transform.shape[0])
 
 
-# In[19]:
+# In[18]:
 
 
 print(y.shape)
@@ -279,7 +280,7 @@ print(df_train_transform_with_label.shape)
 print(df_test_transform_with_label.shape)
 
 
-# In[20]:
+# In[19]:
 
 
 def get_next_batch(i,batch_size,dataset):
@@ -288,7 +289,7 @@ def get_next_batch(i,batch_size,dataset):
     return dataset[start:end]
 
 
-# In[21]:
+# In[20]:
 
 
 import tensorflow as tf
@@ -298,14 +299,14 @@ import matplotlib.pyplot as plt
 
 # Parameters
 learning_rate = 0.01
-training_epochs = 20
+training_epochs = 100
 batch_size = 55
 display_step = 1
 examples_to_show = 10
 
 # Network Parameters
 n_hidden_1 = 55 # 1st layer num features
-n_hidden_2 = 25 # 2nd layer num features
+#n_hidden_2 = 25 # 2nd layer num features
 n_input = 118 # Number of features
 
 # tf Graph input (only pictures)
@@ -314,40 +315,36 @@ autoencoder_op = tf.placeholder("float", [None, n_input])
 
 weights = {
     'encoder_h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
-    'encoder_h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
-    'decoder_h1': tf.Variable(tf.random_normal([n_hidden_2, n_hidden_1])),
-    'decoder_h2': tf.Variable(tf.random_normal([n_hidden_1, n_input])),
+    #'encoder_h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
+    #'decoder_h1': tf.Variable(tf.random_normal([n_hidden_2, n_hidden_1])),
+    'decoder_h1': tf.Variable(tf.random_normal([n_hidden_1, n_input])),
 }
 biases = {
     'encoder_b1': tf.Variable(tf.random_normal([n_hidden_1])),
-    'encoder_b2': tf.Variable(tf.random_normal([n_hidden_2])),
-    'decoder_b1': tf.Variable(tf.random_normal([n_hidden_1])),
-    'decoder_b2': tf.Variable(tf.random_normal([n_input])),
+    #'encoder_b2': tf.Variable(tf.random_normal([n_hidden_2])),
+    #'decoder_b1': tf.Variable(tf.random_normal([n_hidden_1])),
+    'decoder_b1': tf.Variable(tf.random_normal([n_input])),
 }
 
 
 # Building the encoder
 def encoder(x):
     # Encoder Hidden layer with sigmoid activation #1
-    layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['encoder_h1']),
-                                   biases['encoder_b1']))
+    layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['encoder_h1']),biases['encoder_b1']))
     # Encoder Hidden layer with sigmoid activation #2
-    layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['encoder_h2']),
-                                   biases['encoder_b2']))
+    #layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['encoder_h2']),biases['encoder_b2']))
     print('encoder')
-    return layer_2
+    return layer_1
 
 
 # Building the decoder
 def decoder(x):
     # Decoder Hidden layer with sigmoid activation #1
-    layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['decoder_h1']),
-                                   biases['decoder_b1']))
+    layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['decoder_h1']),biases['decoder_b1']))
     # Decoder Hidden layer with sigmoid activation #2
-    layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['decoder_h2']),
-                                   biases['decoder_b2']))
+    #layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['decoder_h2']),biases['decoder_b2']))
     print('decoder')
-    return layer_2
+    return layer_1
 
 # Construct model
 encoder_op = encoder(X)
@@ -382,14 +379,29 @@ with tf.Session() as sess:
             print("Epoch:", '%04d' % (epoch+1),
                   "cost=", "{:.9f}".format(c))            
     print("Optimization Finished!")
-    c2,dec_op2 = sess.run([cost,decoder_op], feed_dict={X: df_train_transform}) 
+    #c2,dec_op2 = sess.run([cost,decoder_op], feed_dict={X: df_train_transform}) 
     save_path = saver.save(sess,model_path)
     # model has been trained pass the training data with labels
-    cost_train,dec_op_train_label = sess.run([cost,decoder_op], feed_dict={X: df_train_transform}) 
-    cost_test,dec_op_test_label = sess.run([cost,decoder_op], feed_dict={X: df_test_transform}) 
+    cost_train,encoder_op_train_wo_label = sess.run([cost,encoder_op], feed_dict={X: df_train_transform}) 
+    print(cost_train)
+    cost_test,encoder_op_test_wo_label = sess.run([cost,encoder_op], feed_dict={X: df_test_transform}) 
+    print(cost_test)
 
 
-# In[22]:
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+print(encoder_op_train_wo_label.shape)
+print(encoder_op_test_wo_label.shape)
+
+
+# In[21]:
 
 
 def get_next_batch_label(i,batch_size,dataset):
@@ -398,139 +410,38 @@ def get_next_batch_label(i,batch_size,dataset):
     return dataset[start:end]
 
 
-# In[23]:
-
-
-# Parameters
-learning_rate = 0.01
-training_epochs = 20
-batch_size = 55
-display_step = 1
-examples_to_show = 10
-
-# Network Parameters
-n_hidden_1 = 55 # 1st layer num features
-n_hidden_2 = 25 # 2nd layer num features
-n_input = 120 # Number of features
-
-# tf Graph input (only pictures)
-X = tf.placeholder("float", [None, n_input])
-autoencoder_op = tf.placeholder("float", [None, n_input])
-
-weights = {
-    'encoder_h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
-    'encoder_h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
-    'decoder_h1': tf.Variable(tf.random_normal([n_hidden_2, n_hidden_1])),
-    'decoder_h2': tf.Variable(tf.random_normal([n_hidden_1, n_input])),
-}
-biases = {
-    'encoder_b1': tf.Variable(tf.random_normal([n_hidden_1])),
-    'encoder_b2': tf.Variable(tf.random_normal([n_hidden_2])),
-    'decoder_b1': tf.Variable(tf.random_normal([n_hidden_1])),
-    'decoder_b2': tf.Variable(tf.random_normal([n_input])),
-}
-
-
-# Building the encoder
-def encoder(x):
-    # Encoder Hidden layer with sigmoid activation #1
-    layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['encoder_h1']),
-                                   biases['encoder_b1']))
-    # Encoder Hidden layer with sigmoid activation #2
-    layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['encoder_h2']),
-                                   biases['encoder_b2']))
-    print('encoder')
-    return layer_2
-
-
-# Building the decoder
-def decoder(x):
-    # Decoder Hidden layer with sigmoid activation #1
-    layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(x, weights['decoder_h1']),
-                                   biases['decoder_b1']))
-    # Decoder Hidden layer with sigmoid activation #2
-    layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['decoder_h2']),
-                                   biases['decoder_b2']))
-    print('decoder')
-    return layer_2
-
-# Construct model
-encoder_op = encoder(X)
-decoder_op = decoder(encoder_op)
-    
-model_path = "C:\\users\\user\MSDS\\Capstone\\Models"
-
-# Prediction
-y_pred = decoder_op
-# Targets (Labels) are the input data.
-y_true = X
-
-# Define loss and optimizer, minimize the squared error
-cost = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
-optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(cost)
-# Initializing the variables
-init = tf.global_variables_initializer()
-saver = tf.train.Saver()
-# Launch the graph
-with tf.Session() as sess:
-    sess.run(init)
-    total_batch = int(df_train_transform_with_label.shape[0]/batch_size)
-    # Training cycle
-    for epoch in range(training_epochs):
-        # Loop over all batches
-        for i in range(total_batch):
-            batch_xs = get_next_batch_label(i,batch_size,df_train_transform_with_label)
-            # Run optimization op (backprop) and cost op (to get loss value)
-            _, c = sess.run([optimizer, cost], feed_dict={X: batch_xs}) 
-        # Display logs per epoch step
-        if epoch % display_step == 0:
-            print("Epoch:", '%04d' % (epoch+1),
-                  "cost=", "{:.9f}".format(c))            
-    print("Optimization Finished!")
-    cost_train,dec_op_train_label = sess.run([cost,decoder_op], feed_dict={X: df_train_transform_with_label}) 
-    save_path = saver.save(sess,model_path)
-    # model has been trained pass the training data with labels
-    cost_test,dec_op_test_label = sess.run([cost,decoder_op], feed_dict={X: df_test_transform_with_label}) 
-
-
-# In[ ]:
-
-
-print(dec_op_train_label.shape)
-
-
 # In[ ]:
 
 
 
-
-
-# In[24]:
-
-
-def get_next_batch_sftmax(i,batch_size):
-    start = i*batch_size
-    end = (i+1)*batch_size
-    return df_train_transform_with_label[start:end,0:118],df_train_transform_with_label[start:end,118:120]
 
 
 # In[25]:
 
 
+def get_next_batch_sftmax(i,batch_size):
+    start = i*batch_size
+    end = (i+1)*batch_size
+    return encoder_op_train_wo_label[start:end,0:55],df_train_transform_with_label[start:end,118:120]
+
+
+# In[26]:
+
+
 ## Now we build the softmax regressor
 
 # Parameters
-learning_rate = 0.01
-training_epochs = 25
+learning_rate = 0.35
+training_epochs = 1000
 batch_size = 55
-display_step = 1
+display_step = 10
 
 # tf Graph Input
-x = tf.placeholder(tf.float32, [None, 118]) # 118 features
+x = tf.placeholder(tf.float32, [None, 55]) # 118 features
 y = tf.placeholder(tf.float32, [None, 2]) # 0-9 digits recognition => 10 classes
 
 # Set model weights
-W = tf.Variable(tf.zeros([118, 2]))
+W = tf.Variable(tf.zeros([55, 2]))
 b = tf.Variable(tf.zeros([2]))
 
 # Construct model
@@ -569,6 +480,84 @@ with tf.Session() as sess:
 
     print("Optimization Finished!")
 
+    print("accuracy", sess.run(accuracy, feed_dict={x: encoder_op_train_wo_label[:,0:55], y: df_train_transform_with_label[:,118:120]}))
+    #prediction=tf.argmax(y,1)
+    #print ("predictions", prediction.eval(feed_dict={x: df_train_transform_with_label[0:118]}, session=sess))
+    print("accuracy", sess.run(accuracy, feed_dict={x: encoder_op_test_wo_label[:,0:55], y: df_test_transform_with_label[:,118:120]}))
+    #print("accuracy", sess.run(accuracy, feed_dict={x: df_train_transform_with_label[:,0:118], y: df_train_transform_with_label[:,118:120]}))
+    
+
+
+# In[ ]:
+
+
+print(dec_op_test_label[1])
+
+
+# In[27]:
+
+
+def get_next_batch_sftmax_wostl(i,batch_size):
+    start = i*batch_size
+    end = (i+1)*batch_size
+    return df_train_transform_with_label[start:end,0:118],df_train_transform_with_label[start:end,118:120]
+
+
+# In[28]:
+
+
+## Now we build the softmax regressor
+
+# Parameters
+learning_rate = 0.3
+training_epochs = 1000
+batch_size = 55
+display_step = 10
+
+# tf Graph Input
+x = tf.placeholder(tf.float32, [None, 118]) # 118 features
+y = tf.placeholder(tf.float32, [None, 2]) # 0-9 digits recognition => 10 classes
+
+# Set model weights
+W = tf.Variable(tf.zeros([118, 2]))
+b = tf.Variable(tf.zeros([2]))
+
+# Construct model
+pred = tf.nn.softmax(tf.matmul(x, W) + b) # Softmax
+
+# Minimize error using cross entropy
+cost = tf.reduce_mean(-tf.reduce_sum(y*tf.log(pred), reduction_indices=1))
+# Gradient Descent
+optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost)
+
+# Initializing the variables
+init = tf.global_variables_initializer()
+
+correct_prediction = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+# Launch the graph
+with tf.Session() as sess:
+    sess.run(init)
+
+    # Training cycle
+    for epoch in range(training_epochs):
+        avg_cost = 0.
+        total_batch = int(df_train_transform_with_label.shape[0]/batch_size)
+        # Loop over all batches
+        for i in range(total_batch):
+            batch_xs, batch_ys = get_next_batch_sftmax_wostl(i,batch_size)
+            # Run optimization op (backprop) and cost op (to get loss value)
+            _, c = sess.run([optimizer, cost], feed_dict={x: batch_xs,
+                                                          y: batch_ys})
+            # Compute average loss
+            avg_cost += c / total_batch
+        # Display logs per epoch step
+        if (epoch+1) % display_step == 0:
+            print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost))
+
+    print("Optimization Finished!")
+
     print("accuracy", sess.run(accuracy, feed_dict={x: df_train_transform_with_label[:,0:118], y: df_train_transform_with_label[:,118:120]}))
     #prediction=tf.argmax(y,1)
     #print ("predictions", prediction.eval(feed_dict={x: df_train_transform_with_label[0:118]}, session=sess))
@@ -578,6 +567,10 @@ with tf.Session() as sess:
 
 
 # In[ ]:
+
+
+
+
 
 
 
